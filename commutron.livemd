@@ -1,0 +1,166 @@
+# Commutron
+
+```elixir
+Mix.install([
+  {:pythonx, github: "cocoa-xu/pythonx-livebook"},
+  {:kino, "~> 0.16.0"}
+])
+```
+
+## Initialise Pythonx Project with Commutron
+
+```elixir
+Pythonx.uv_init("""
+[project]
+name = "project"
+version = "0.0.1"
+requires-python = "==3.11.*"
+dependencies = [
+  "commutron @ file://#{__DIR__}"
+]
+""")
+```
+
+## Example 1: whereis_pid
+
+```elixir
+defmodule Messager do
+  use GenServer
+
+  def start_link(_ignore \\ nil) do
+    GenServer.start_link(__MODULE__, nil, [name: __MODULE__])
+  end
+
+  @impl true
+  def init(_) do
+    {:ok, %{num_received: 0}}
+  end
+
+  @impl true
+  def handle_info(msg, state) do
+    IO.inspect({:messager, state.num_received, msg})
+    {:noreply, %{state | num_received: state.num_received + 1}}
+  end
+end
+
+Messager.start_link()
+```
+
+```elixir
+Pythonx.eval(
+  """
+  import commutron
+
+  pid = commutron.whereis_pid(name)
+  commutron.enif_send(pid, "Hello")
+  """,
+  %{"name" => Messager}
+)
+:ok
+```
+
+## Example 2
+
+### Defines a receptor, this can be a GenServer or whatever process that can receive a message
+
+```elixir
+receptor = spawn(fn ->
+  for i <- 0..10 do
+    receive do
+      msg ->
+        IO.inspect({:receptor, i, msg})
+    end
+  end
+end)
+```
+
+### Lets get user input, process it in Python and send some messages back to the Elixir receptor
+
+```elixir
+"Language"
+|> Kino.Input.select([{1, "Elixir"}, {2, "Erlang"}, {3, "Python"}])
+|> Kino.render()
+|> Kino.listen(fn %{value: selected_index} -> 
+  {result, _} = Pythonx.eval(
+    """
+    import time
+    import commutron
+
+    # ------- simulate some long running process -------
+    # ------- and yields multiple messages to Elixir -------
+    time.sleep(index/2)
+    message = index * 1000
+    commutron.enif_send(target, True)
+    commutron.enif_send(target, message+1)
+    commutron.enif_send(target, [message + 2, message + 3])
+    commutron.enif_send(target, (message + 3, message + 4, message + 5))
+    commutron.enif_send(target, {"a": message})
+    time.sleep(index/2)
+    message = index * 2000
+    commutron.enif_send(target, message / 42.42)
+
+    #------- simulate cleanup work and return some value to Elixir -------
+    time.sleep(index/2)
+    message = index * 4000
+    message
+    """,
+    %{"target" => receptor, "index" => selected_index}
+  )
+  IO.inspect({:returned, result})
+end)
+
+:ok
+```
+
+## Example 3: Countdown
+
+Same as above, we need a receptor process
+
+```elixir
+receptor = spawn(fn ->
+  for _ <- 0..100 do
+    receive do
+      0 ->
+        IO.puts("Time to celebrate!")
+      msg ->
+        IO.inspect({:receptor, msg})
+    end
+  end
+end)
+```
+
+Let's do a countdown this time!
+
+**Notice that in this example, we're using multithreading in Python, and you'll see that we will have the return value from Python before the counting down finishes.**
+
+```elixir
+"Countdown"
+|> Kino.Input.number()
+|> Kino.render()
+|> Kino.listen(fn %{value: countdown} -> 
+  {result, _} = Pythonx.eval(
+    """
+    import time
+    import webbrowser
+    import threading
+    import commutron
+
+    def worker(count):
+      # ------- simulate some long running process -------
+      # ------- and yields multiple messages to Elixir -------
+      for i in reversed(range(count)):
+        commutron.enif_send(target, i)
+        time.sleep(1)
+      webbrowser.open("raycast://extensions/raycast/raycast/confetti")
+
+    t1 = threading.Thread(target=worker, args=(countdown,))
+    t1.start()
+    """,
+    %{"target" => receptor, "countdown" => countdown}
+  )
+  IO.inspect({:returned, result})
+end)
+
+:ok
+
+```
