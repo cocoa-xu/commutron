@@ -1,0 +1,23 @@
+[build-system]
+requires = ["setuptools>=45", "wheel", "ninja"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "commutron"
+authors = [
+    {name = "Cocoa", email = "i@uwucocoa.moe"},
+]
+description = "Commutron between Python and Erlang/OTP based languages."
+requires-python = ">=3.8"
+keywords = ["otp", "erlang", "elixir"]
+license = "MIT"
+version = "0.0.1"
+
+[project.urls]
+"Homepage" = "https://github.com/cocoa-xu/commutron"
+
+[tool.setuptools]
+packages = ["commutron"]
+
+[tool.setuptools.package-data]
+commutron = ["*.so", "*.pyd"]

@@ -1,2 +1,9 @@
 .DS_Store
-
+build/
+commutron.egg-info/
+.vscode/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.ruff_cache/
