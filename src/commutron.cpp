@@ -31,14 +31,14 @@ static void PyErlNifEnvObject_dealloc(PyErlNifEnvObject* self);
 static PyTypeObject PyErlNifEnvObjectType = {
   PyVarObject_HEAD_INIT(NULL, 0)
   .tp_name = "commutron.PyErlNifEnvObject",
-  .tp_doc = "Erlang/OTP ErlNifEnv object wrapper",
   .tp_basicsize = sizeof(PyErlNifEnvObject),
   .tp_itemsize = 0,
-  .tp_flags = Py_TPFLAGS_DEFAULT,
-  .tp_new = PyErlNifEnvObject_new,
-  .tp_init = NULL,
   .tp_dealloc = (destructor)PyErlNifEnvObject_dealloc,
+  .tp_flags = Py_TPFLAGS_DEFAULT,
+  .tp_doc = "Erlang/OTP ErlNifEnv object wrapper",
   .tp_methods = PyErlNifEnvObject_methods,
+  .tp_init = NULL,
+  .tp_new = PyErlNifEnvObject_new,
 };
 
 static void PyErlNifEnvObject_dealloc(PyErlNifEnvObject* self) {
